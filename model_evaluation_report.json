@@ -1,0 +1,30 @@
+{
+  "evaluation_date": "2025-09-12T10:31:28.173713",
+  "model_performance": {
+    "classification": {
+      "accuracy": 0.26,
+      "precision": 0.2639464285714286,
+      "recall": 0.26,
+      "f1_score": 0.26013449513449516,
+      "avg_confidence": 0.8875231546624102
+    },
+    "severity": {
+      "mae": 0.2581504350439843,
+      "mse": 0.09187173535563384,
+      "rmse": 0.30310350601013153,
+      "r2_score": -0.9277650897071239
+    },
+    "cost_estimation": {
+      "mae": 22145.841148556672,
+      "mse": 892580572.4460356,
+      "rmse": 29876.086966770526,
+      "r2_score": 0.0069194695233478765,
+      "mean_percentage_error": 64.5423420028733
+    }
+  },
+  "summary": {
+    "classification_accuracy": 0.26,
+    "severity_r2_score": -0.9277650897071239,
+    "cost_estimation_accuracy": 35.4576579971267
+  }
+}

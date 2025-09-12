@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File Vehicle Claim | InsurEdge AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body{
+      background: linear-gradient(180deg,orange,white,green);
+    }
+    .claim-container {
+      max-width: 600px;
+      
+      margin: 50px auto;
+      background: linear-gradient(45deg,lightcoral,lightblue,peachpuff);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+     
+    }
+
+    .claim-container h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 600;
+      color: black;
+      
+    }
+
+    .claim-container label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 800;
+      color: #444;
+    }
+
+    .claim-container input,
+    .claim-container textarea,
+    .claim-container select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .claim-container input[type="file"] {
+      border: none;
+    }
+
+    .claim-container input:focus,
+    .claim-container textarea:focus,
+    .claim-container select:focus {
+      outline: none;
+      border-color: #6a11cb;
+      box-shadow: 0 0 5px rgba(106, 17, 203, 0.4);
+    }
+    
+     .evi{
+      font-weight: 800;
+      color: palevioletred;
+    }
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(90deg, #f0c14b, #ffa41c);
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(90deg, #ffa41c, #f0c14b);
+    }
+
+    .ai-note {
+      background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #6a11cb;
+    }
+
+    .ai-note h4 {
+      color: #6a11cb;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .ai-note p {
+      color: #444;
+      font-size: 0.9rem;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="navbar-logo">InsurEdge AI</div>
+    <nav>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Claim Form -->
+  <div class="claim-container">
+    <h2>File a Vehicle Insurance Claim</h2>
+    
+    <div class="ai-note">
+      <h4>🤖 AI-Powered Damage Detection</h4>
+      <p>Upload clear photos of your vehicle damage. Our AI will analyze the images to assess damage severity and expedite your claim processing.</p>
+    </div>
+
+    <form action="#" method="POST" enctype="multipart/form-data">
+      <label for="policy-id">Vehicle Policy ID</label>
+      <input type="text" id="policy-id" name="policy_id" placeholder="Enter your vehicle policy number" required />
+
+      <label for="vehicle-info">Vehicle Information</label>
+      <input type="text" id="vehicle-info" name="vehicle_info" placeholder="Make, Model, Year (e.g., Honda Civic 2020)" required />
+
+      <label for="claim-type">Damage Type</label>
+      <select id="claim-type" name="claim_type" required>
+        <option value="">Select Damage Type</option>
+        <option value="collision">Vehicle Collision</option>
+        <option value="theft">Vehicle Theft</option>
+        <option value="vandalism">Vandalism</option>
+        <option value="fire">Fire Damage</option>
+        <option value="flood">Flood/Water Damage</option>
+        <option value="hail">Hail Damage</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="description">Incident Description</label>
+      <textarea id="description" name="description" rows="5" placeholder="Describe what happened to your vehicle..." required></textarea>
+
+      <label for="evidence" class="evi">Upload Vehicle Damage Photos</label>
+      <input type="file" id="evidence" name="evidence" accept="image/*" multiple required />
+      <small style="color: #666; font-size: 0.85rem;">Upload multiple photos showing different angles of the damage for better AI analysis</small>
+
+      <button type="submit" class="submit-btn">Process Claim with AI</button>
+    </form>
+  </div>
+        <script>
+        const form = document.querySelector("form");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const token = localStorage.getItem("token");
+          if (!token) {
+            alert("Please login first");
+            window.location.href = "login.html";
+            return;
+          }
+
+          const formData = new FormData(form);
+          formData.append("token", token);
+
+          try {
+            const res = await fetch("http://localhost:8000/api/claims", {
+              method: "POST",
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              body: formData,
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.error || "Failed to submit vehicle claim");
+            }
+            const data = await res.json();
+            alert("Vehicle claim submitted successfully! " + data.status);
+            form.reset();
+          } catch (err) {
+            alert("Error: " + err.message);
+          }
+        });
+      </script>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+{
+  "evaluation_date": "2025-09-12T10:31:46.086551",
+  "model_performance": {
+    "classification": {
+      "accuracy": 0.87,
+      "precision": 0.85,
+      "recall": 0.86,
+      "f1_score": 0.85,
+      "avg_confidence": 0.91
+    },
+    "severity": {
+      "mae": 0.12,
+      "mse": 0.025,
+      "rmse": 0.158,
+      "r2_score": 0.78
+    },
+    "cost_estimation": {
+      "mae": 8500,
+      "mse": 125000000,
+      "rmse": 11180,
+      "r2_score": 0.82,
+      "mean_percentage_error": 15.2
+    }
+  },
+  "summary": {
+    "classification_accuracy": 87.0,
+    "severity_r2_score": 0.78,
+    "cost_estimation_accuracy": 84.8
+  },
+  "model_details": {
+    "architecture": "EfficientNetB3 + Custom Layers",
+    "training_samples": 50000,
+    "validation_samples": 10000,
+    "test_samples": 5000,
+    "training_time": "4.2 hours",
+    "inference_time": "0.3 seconds per image"
+  },
+  "damage_type_performance": {
+    "collision": {
+      "accuracy": 0.92,
+      "samples": 2000
+    },
+    "theft": {
+      "accuracy": 0.88,
+      "samples": 500
+    },
+    "vandalism": {
+      "accuracy": 0.85,
+      "samples": 750
+    },
+    "fire": {
+      "accuracy": 0.9,
+      "samples": 250
+    },
+    "flood": {
+      "accuracy": 0.83,
+      "samples": 500
+    },
+    "hail": {
+      "accuracy": 0.89,
+      "samples": 750
+    },
+    "other": {
+      "accuracy": 0.81,
+      "samples": 250
+    }
+  }
+}

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Register | InsurEdge AI Vehicle Insurance</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        body {
+            background: linear-gradient(45deg, #dd2476, plum, #1fa2ff, #a6ffcb);
+            background-size: 400% 400%;
+            animation: bgShift 7s ease infinite;
+        }
+        
+        @keyframes bgShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .register-container {
+            max-width: 500px;
+            margin: 60px auto;
+            background: linear-gradient(135deg, plum, lightblue, lightgreen);
+            padding: 30px;
+            border-radius: 10px;
+            color: solid black;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .register-container h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: orchid;
+        }
+
+        .register-container .subtitle {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #444;
+            font-size: 0.9rem;
+        }
+
+        .register-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .register-container input:focus {
+            outline: none;
+            border-color: #6a11cb;
+            box-shadow: 0 0 5px rgba(106, 17, 203, 0.5);
+        }
+
+        .register-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #f0c14b, #ffa41c);
+            border: none;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .register-btn:hover {
+            background: linear-gradient(90deg, #ffa41c, #f0c14b);
+        }
+
+        .form-footer {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .form-footer a {
+            color: #0073bb;
+            text-decoration: none;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row input {
+            flex: 1;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #6a11cb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <header class="navbar">
+        <div class="navbar-logo">InsurEdge AI</div>
+        <nav>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+                <li><a href="register.html" class="active">Register</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Registration Form -->
+    <div class="register-container">
+        <h2>Create Your InsurEdge Account</h2>
+        <p class="subtitle">Join our AI-powered vehicle insurance platform</p>
+        
+        <form id="registerForm">
+            <div class="form-row">
+                <input type="text" name="firstName" placeholder="First Name" required />
+                <input type="text" name="lastName" placeholder="Last Name" required />
+            </div>
+            
+            <input type="email" name="email" placeholder="Email Address" required />
+            <input type="tel" name="phone" placeholder="Phone Number" />
+            <input type="text" name="address" placeholder="Address (Optional)" />
+            <input type="password" name="password" placeholder="Password" required />
+            <input type="password" name="confirmPassword" placeholder="Confirm Password" required />
+            
+            <button type="submit" class="register-btn">Create Account</button>
+        </form>
+        
+        <div class="loading" id="loading">Creating your account...</div>
+        
+        <div class="form-footer">
+            Already have an account? <a href="login.html">Login to your account</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('registerForm');
+        const loading = document.getElementById('loading');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Show loading
+            loading.style.display = 'block';
+            form.style.display = 'none';
+            
+            const formData = new FormData(form);
+            const data = {
+                name: `${formData.get('firstName')} ${formData.get('lastName')}`,
+                email: formData.get('email'),
+                password: formData.get('password'),
+                phone: formData.get('phone'),
+                address: formData.get('address')
+            };
+            
+            // Validate passwords match
+            if (data.password !== formData.get('confirmPassword')) {
+                alert('Passwords do not match!');
+                loading.style.display = 'none';
+                form.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const res = await fetch('http://localhost:8000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Registration failed');
+                }
+                
+                const result = await res.json();
+                
+                // Store token and user info
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('name', result.name);
+                localStorage.setItem('user_id', result.user_id);
+                
+                // Show success message
+                alert('Account created successfully! Welcome to InsurEdge AI.');
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+                
+            } catch (err) {
+                alert('Registration failed: ' + err.message);
+                loading.style.display = 'none';
+                form.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

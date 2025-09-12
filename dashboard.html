@@ -1,0 +1,248 @@
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+<meta charset="UTF-8" /> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+<title>Dashboard | InsurEdge AI Vehicle Insurance</title> 
+<link rel="stylesheet" href="styles.css" /> 
+<style> 
+.greeting { 
+text-align: center; 
+margin-top: 30px; 
+font-size: 1.5rem; 
+font-weight: 600; 
+color: #232f3e; 
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 30px;
+  margin: 40px 20px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #f4f4f4, #ffffff);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+  font-size: 2rem;
+  color: #6a11cb;
+  font-weight: bold;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #444;
+  margin-top: 8px;
+}
+
+.recent-claims {
+  margin: 40px 20px;
+  background: linear-gradient(135deg, #cce5ff, #f3d1ff, #a0eaff);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.recent-claims h3 {
+  color: #232f3e;
+  margin-bottom: 15px;
+}
+
+.claim-item {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 4px solid #6a11cb;
+}
+
+.claim-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-approved { background: #d4edda; color: #155724; }
+.status-pending { background: #fff3cd; color: #856404; }
+.status-processing { background: #cce7ff; color: #004085; }
+
+</style> 
+</head> 
+<body> 
+<!-- Navbar --> 
+<header class="navbar"> 
+<div class="navbar-logo">InsurEdge AI</div> 
+<nav> 
+<ul class="navbar-menu"> 
+<li><a href="index.html">Home</a></li> 
+<li><a href="dashboard.html" class="active">Dashboard</a></li> 
+<li><a href="login.html">Logout</a></li> 
+</ul> 
+</nav> 
+</header> 
+
+<!-- Greeting --> 
+<div class="greeting">Welcome back, Dhruva 👋</div> 
+
+<!-- Stat Cards --> 
+<div class="stat-grid"> 
+<div class="stat-card"> 
+<div class="stat-value">3</div> 
+<div class="stat-label">Active Vehicle Policies</div> 
+</div> 
+<div class="stat-card"> 
+<div class="stat-value">₹1,25,000</div> 
+<div class="stat-label">Claims Settled This Year</div> 
+</div> 
+<div class="stat-card"> 
+<div class="stat-value">95%</div> 
+<div class="stat-label">AI Detection Accuracy</div> 
+</div> 
+<div class="stat-card"> 
+<div class="stat-value">1</div> 
+<div class="stat-label">Pending Renewal</div> 
+</div> 
+</div> 
+
+<!-- Recent Claims Section -->
+<div class="recent-claims">
+  <h3>Recent Vehicle Claims</h3>
+  <div id="claims-container">
+    <div class="claim-item" style="text-align: center; color: #666;">
+      <p>No claims found. <a href="claim.html" style="color: #6a11cb;">File your first claim</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function loadDashboard() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login first");
+      window.location.href = "login.html";
+      return;
+    }
+
+    try {
+      // Load dashboard stats
+      const dashRes = await fetch(`http://localhost:8000/api/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!dashRes.ok) throw new Error("Unauthorized");
+      const dashData = await dashRes.json();
+
+      // Update dashboard stats
+      document.querySelector(".greeting").textContent = `Welcome back, ${dashData.name} 👋`;
+      document.querySelector(".stat-grid .stat-card:nth-child(1) .stat-value").textContent = dashData.active_policies;
+      document.querySelector(".stat-grid .stat-card:nth-child(2) .stat-value").textContent = `₹${dashData.total_claims_amount || 0}`;
+      document.querySelector(".stat-grid .stat-card:nth-child(3) .stat-value").textContent = dashData.ai_accuracy + '%';
+      document.querySelector(".stat-grid .stat-card:nth-child(4) .stat-value").textContent = dashData.pending_renewal;
+
+      // Load recent claims
+      await loadRecentClaims(token);
+
+    } catch (err) {
+      alert("Session expired. Please log in again.");
+      window.location.href = "login.html";
+    }
+  }
+
+  async function loadRecentClaims(token) {
+    try {
+      const claimsRes = await fetch(`http://localhost:8000/api/claims?limit=5`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!claimsRes.ok) throw new Error("Failed to load claims");
+      const claimsData = await claimsRes.json();
+      
+      const claimsContainer = document.getElementById('claims-container');
+      
+      if (claimsData.claims && claimsData.claims.length > 0) {
+        claimsContainer.innerHTML = '';
+        
+        claimsData.claims.forEach(claim => {
+          const statusClass = getStatusClass(claim.status);
+          const statusText = getStatusText(claim.status);
+          const aiInfo = getAIInfo(claim.ai_assessment);
+          
+          const claimElement = document.createElement('div');
+          claimElement.className = 'claim-item';
+          claimElement.innerHTML = `
+            <strong>Claim #${claim.claim_id}</strong> - ${claim.vehicle_info} ${claim.claim_type}
+            <span class="claim-status ${statusClass}">${statusText}</span>
+            <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">${aiInfo}</p>
+          `;
+          
+          claimsContainer.appendChild(claimElement);
+        });
+      } else {
+        claimsContainer.innerHTML = `
+          <div class="claim-item" style="text-align: center; color: #666;">
+            <p>No claims found. <a href="claim.html" style="color: #6a11cb;">File your first claim</a></p>
+          </div>
+        `;
+      }
+      
+    } catch (err) {
+      console.error("Error loading claims:", err);
+      document.getElementById('claims-container').innerHTML = `
+        <div class="claim-item" style="text-align: center; color: #666;">
+          <p>Unable to load claims. Please try again later.</p>
+        </div>
+      `;
+    }
+  }
+
+  function getStatusClass(status) {
+    switch(status) {
+      case 'approved': return 'status-approved';
+      case 'processing': return 'status-processing';
+      case 'pending': return 'status-pending';
+      default: return 'status-processing';
+    }
+  }
+
+  function getStatusText(status) {
+    switch(status) {
+      case 'approved': return 'Approved';
+      case 'processing': return 'AI Processing';
+      case 'pending': return 'Pending Documents';
+      default: return 'Processing';
+    }
+  }
+
+  function getAIInfo(aiAssessment) {
+    if (!aiAssessment) return 'Processing...';
+    
+    if (aiAssessment.damage_detected) {
+      const cost = aiAssessment.estimated_cost ? `₹${aiAssessment.estimated_cost.toLocaleString()}` : 'Cost pending';
+      const confidence = aiAssessment.confidence_score ? `${aiAssessment.confidence_score}% confidence` : '';
+      return `AI detected: ${aiAssessment.damage_type} damage, ${cost} estimated ${confidence}`;
+    }
+    
+    return 'AI analysis in progress...';
+  }
+
+  window.onload = loadDashboard;
+</script>
+</body> 
+</html>
