@@ -346,24 +346,24 @@ class VehicleDamageDetector:
                 fraud_indicators.append("Unusually high confidence for theft claim")
                 fraud_score += 0.2
             
-            # Determine fraud risk level
-            if fraud_score >= 0.6:
+            # Determine fraud risk level (more aggressive detection)
+            if fraud_score >= 0.5:
                 risk_level = "HIGH"
-                action = "MANUAL_REVIEW_REQUIRED"
-            elif fraud_score >= 0.3:
+                action = "CLAIM_REJECTED"
+            elif fraud_score >= 0.25:
                 risk_level = "MEDIUM"
-                action = "ADDITIONAL_VERIFICATION"
+                action = "MANUAL_REVIEW_REQUIRED"
             else:
                 risk_level = "LOW"
                 action = "PROCEED_NORMAL"
             
             return {
-                "fraud_detected": fraud_score >= 0.3,
+                "fraud_detected": fraud_score >= 0.25,
                 "fraud_score": round(fraud_score, 3),
                 "risk_level": risk_level,
                 "recommended_action": action,
                 "fraud_indicators": fraud_indicators,
-                "requires_human_review": fraud_score >= 0.6
+                "requires_human_review": fraud_score >= 0.5
             }
             
         except Exception as e:
@@ -404,12 +404,18 @@ class VehicleDamageDetector:
             if fraud_analysis['fraud_detected']:
                 if fraud_analysis['risk_level'] == 'HIGH':
                     estimated_cost = 0  # Don't provide estimate for high-risk fraud
-                    recommendations = ["CLAIM FLAGGED FOR FRAUD - Manual review required"]
+                    recommendations = ["🚨 CLAIM REJECTED - Fraudulent activity detected", "Contact customer service for appeal process"]
+                    claim_status = "rejected"
+                elif fraud_analysis['risk_level'] == 'MEDIUM':
+                    recommendations = self._generate_recommendations(damage_type, severity_level)
+                    recommendations.append("⚠️ Additional verification required due to fraud indicators")
+                    claim_status = "under_review"
                 else:
                     recommendations = self._generate_recommendations(damage_type, severity_level)
-                    recommendations.append("Additional verification required due to fraud indicators")
+                    claim_status = "approved"
             else:
                 recommendations = self._generate_recommendations(damage_type, severity_level)
+                claim_status = "approved"
             
             # 7. Generate comprehensive assessment
             assessment = {
@@ -422,7 +428,7 @@ class VehicleDamageDetector:
                 "analysis_timestamp": str(np.datetime64('now')),
                 "recommendations": recommendations,
                 "fraud_analysis": fraud_analysis,
-                "claim_status": "approved" if not fraud_analysis['fraud_detected'] else "under_review"
+                "claim_status": claim_status
             }
             
             return assessment
