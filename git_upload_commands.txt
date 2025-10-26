@@ -1,0 +1,32 @@
+# 📤 Git Upload Commands for New Repository
+
+## Step 1: Remove existing git history (if any)
+rmdir /s .git
+
+## Step 2: Initialize new git repository
+git init
+
+## Step 3: Add all files (excluding large models due to .gitignore)
+git add .
+
+## Step 4: Create initial commit
+git commit -m "🚀 Initial commit: InsurEdge AI - Colorful AI-Powered Insurance Platform
+
+✨ Features:
+- 🔐 Privacy-first user authentication
+- 🎨 Vibrant rainbow gradient design
+- 🤖 AI damage detection & fraud prevention
+- 💡 Great UX with no auto-refresh
+- 🌟 Professional code architecture"
+
+## Step 5: Add your GitHub repository as remote
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+
+## Step 6: Push to GitHub
+git branch -M main
+git push -u origin main
+
+# 🎯 Alternative: If you get errors, try force push (be careful!)
+# git push -u origin main --force
+
+# 📝 Note: Replace YOUR_USERNAME and YOUR_REPO_NAME with your actual GitHub details

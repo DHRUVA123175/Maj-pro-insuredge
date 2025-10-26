@@ -66,11 +66,11 @@ yarn-error.log*
 *.sqlite
 *.sqlite3
 
-# ML Models (if you want to exclude large model files)
-# Uncomment these if your models are too large for git
-# models/*.h5
-# models/*.pkl
-# models/*.joblib
+# ML Models (too large for git - will be recreated on first run)
+models/*.h5
+models/*.pkl
+models/*.joblib
+models/
 
 # Uploads Directory (contains user uploaded images)
 uploads/*
