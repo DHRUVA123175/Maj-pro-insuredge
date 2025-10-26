@@ -219,74 +219,188 @@ class VehicleDamageDetector:
             return np.random.rand(1, 10)  # Fallback to random features
     
     def classify_damage(self, image_data):
-        """Classify type of damage in the image"""
+        """Classify type of damage based on actual image analysis"""
         try:
-            # Preprocess image
-            processed_img = self.preprocess_image(image_data)
-            if processed_img is None:
-                return "collision", 0.85
+            # Convert to OpenCV format for real analysis
+            if isinstance(image_data, bytes):
+                nparr = np.frombuffer(image_data, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            else:
+                img = cv2.cvtColor(np.array(image_data), cv2.COLOR_RGB2BGR)
             
-            # For demo: simulate realistic predictions
-            damage_types = ['collision', 'theft', 'vandalism', 'fire', 'flood', 'hail', 'other']
-            weights = [0.4, 0.1, 0.15, 0.05, 0.1, 0.15, 0.05]  # Collision most common
+            if img is None:
+                return "no_damage", 0.95
             
-            predicted_type = np.random.choice(damage_types, p=weights)
-            confidence = np.random.uniform(0.82, 0.96)  # Realistic confidence
+            # Actual damage detection logic
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            return predicted_type, confidence
+            # 1. Check for significant damage using edge detection
+            edges = cv2.Canny(gray, 50, 150)
+            edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+            
+            # 2. Check color variance (damage creates color inconsistencies)
+            color_variance = np.var(img)
+            
+            # 3. Check brightness variations (dents/scratches create shadows)
+            brightness_std = np.std(gray)
+            
+            # 4. Detect if there's actual damage
+            damage_score = 0
+            
+            # High edge density might indicate damage
+            if edge_density > 0.15:
+                damage_score += 0.3
+            
+            # High color variance might indicate damage
+            if color_variance > 2000:
+                damage_score += 0.3
+                
+            # Brightness variations indicate surface irregularities
+            if brightness_std > 40:
+                damage_score += 0.4
+            
+            # Determine if there's actual damage
+            if damage_score < 0.4:
+                return "no_damage", 0.92
+            
+            # If damage detected, classify type based on image characteristics
+            damage_type = "collision"  # Default to most common
+            confidence = 0.85
+            
+            # Analyze damage patterns
+            # Dark areas might indicate fire/burn damage
+            dark_pixels = np.sum(gray < 50) / (gray.shape[0] * gray.shape[1])
+            if dark_pixels > 0.3:
+                damage_type = "fire"
+                confidence = 0.88
+            
+            # Very uniform damage across image might be hail
+            elif edge_density > 0.25 and brightness_std < 30:
+                damage_type = "hail"
+                confidence = 0.86
+            
+            # High contrast variations might be collision
+            elif brightness_std > 60:
+                damage_type = "collision"
+                confidence = 0.89
+            
+            # Check for water damage indicators (blue/dark tints)
+            blue_channel = img[:,:,0]
+            if np.mean(blue_channel) > np.mean(img[:,:,1]) + 20:
+                damage_type = "flood"
+                confidence = 0.87
+            
+            return damage_type, confidence
+            
         except Exception as e:
             print(f"Error classifying damage: {e}")
-            return "collision", 0.85
+            return "no_damage", 0.95
     
     def predict_severity(self, image_data, damage_type):
-        """Predict damage severity (0-1 scale)"""
+        """Predict damage severity based on actual image analysis"""
         try:
-            # For demo: realistic severity based on damage type
-            severity_ranges = {
-                'collision': (0.3, 0.8),
-                'theft': (0.7, 1.0),
-                'fire': (0.8, 1.0),
-                'flood': (0.6, 0.9),
-                'vandalism': (0.2, 0.6),
-                'hail': (0.1, 0.5),
-                'other': (0.2, 0.7)
+            if damage_type == "no_damage":
+                return 0.0
+            
+            # Convert to OpenCV format
+            if isinstance(image_data, bytes):
+                nparr = np.frombuffer(image_data, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            else:
+                img = cv2.cvtColor(np.array(image_data), cv2.COLOR_RGB2BGR)
+            
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            
+            # Calculate severity based on actual damage indicators
+            severity_score = 0.0
+            
+            # 1. Edge density (more edges = more damage)
+            edges = cv2.Canny(gray, 50, 150)
+            edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+            severity_score += min(edge_density * 2, 0.4)  # Cap at 0.4
+            
+            # 2. Color variance (damage creates color inconsistencies)
+            color_variance = np.var(img)
+            if color_variance > 1000:
+                severity_score += min((color_variance - 1000) / 5000, 0.3)
+            
+            # 3. Brightness variations
+            brightness_std = np.std(gray)
+            if brightness_std > 30:
+                severity_score += min((brightness_std - 30) / 100, 0.3)
+            
+            # Adjust based on damage type
+            type_multipliers = {
+                'collision': 1.0,
+                'theft': 1.5,  # Theft usually means total loss
+                'fire': 1.4,
+                'flood': 1.2,
+                'vandalism': 0.8,
+                'hail': 0.6,
+                'other': 1.0
             }
             
-            min_sev, max_sev = severity_ranges.get(damage_type, (0.3, 0.7))
-            severity = np.random.uniform(min_sev, max_sev)
+            severity_score *= type_multipliers.get(damage_type, 1.0)
             
-            return float(severity)
+            # Ensure reasonable range
+            return min(max(severity_score, 0.1), 1.0)
+            
         except Exception as e:
             print(f"Error predicting severity: {e}")
-            return 0.5
+            return 0.3
     
     def estimate_cost(self, image_data, damage_type, severity):
-        """Estimate repair cost based on damage type and severity"""
+        """Estimate repair cost based on actual damage assessment"""
         try:
-            # Realistic cost estimation based on damage type and severity
+            if damage_type == "no_damage":
+                return 0
+            
+            # Realistic base costs for different damage types (Indian market)
             base_costs = {
-                'collision': (15000, 80000),
-                'theft': (50000, 150000),
-                'fire': (80000, 200000),
-                'flood': (40000, 120000),
-                'vandalism': (5000, 30000),
-                'hail': (8000, 25000),
-                'other': (10000, 50000)
+                'collision': {
+                    'minor': (3000, 8000),      # Small scratches, dents
+                    'moderate': (8000, 25000),   # Bumper replacement, panel work
+                    'severe': (25000, 60000)     # Major structural damage
+                },
+                'theft': (80000, 200000),        # Usually total loss
+                'fire': (100000, 300000),        # Usually total loss
+                'flood': (40000, 150000),        # Engine/electrical damage
+                'vandalism': (2000, 15000),      # Paint, windows, minor damage
+                'hail': (5000, 20000),          # Dent removal, paint touch-up
+                'other': (5000, 30000)
             }
             
-            min_cost, max_cost = base_costs.get(damage_type, (15000, 60000))
+            if damage_type in ['theft', 'fire']:
+                # These are usually total loss scenarios
+                min_cost, max_cost = base_costs[damage_type]
+                return int(min_cost + (max_cost - min_cost) * severity)
             
-            # Scale cost by severity
-            base_cost = min_cost + (max_cost - min_cost) * severity
+            elif damage_type == 'collision':
+                # Determine collision severity category
+                if severity <= 0.3:
+                    cost_range = base_costs['collision']['minor']
+                elif severity <= 0.7:
+                    cost_range = base_costs['collision']['moderate']
+                else:
+                    cost_range = base_costs['collision']['severe']
+                
+                min_cost, max_cost = cost_range
+                base_cost = min_cost + (max_cost - min_cost) * (severity % 0.4) / 0.4
+                
+            else:
+                # Other damage types
+                min_cost, max_cost = base_costs.get(damage_type, (5000, 30000))
+                base_cost = min_cost + (max_cost - min_cost) * severity
             
-            # Add some realistic variation
+            # Add realistic variation (±15%)
             variation = np.random.uniform(0.85, 1.15)
             final_cost = base_cost * variation
             
-            return int(final_cost)
+            return max(int(final_cost), 1000)  # Minimum ₹1000
+            
         except Exception as e:
             print(f"Error estimating cost: {e}")
-            return 25000
+            return 5000
     
     def detect_fraud(self, image_data, damage_type, confidence):
         """Detect potential insurance fraud"""
@@ -400,26 +514,35 @@ class VehicleDamageDetector:
             else:
                 severity_level = "high"
             
-            # 6. Adjust assessment based on fraud risk
-            if fraud_analysis['fraud_detected']:
-                if fraud_analysis['risk_level'] == 'HIGH':
-                    estimated_cost = 0  # Don't provide estimate for high-risk fraud
-                    recommendations = ["🚨 CLAIM REJECTED - Fraudulent activity detected", "Contact customer service for appeal process"]
-                    claim_status = "rejected"
-                elif fraud_analysis['risk_level'] == 'MEDIUM':
-                    recommendations = self._generate_recommendations(damage_type, severity_level)
-                    recommendations.append("⚠️ Additional verification required due to fraud indicators")
-                    claim_status = "under_review"
+            # 6. Handle no damage cases
+            if damage_type == "no_damage":
+                recommendations = ["No significant damage detected", "Claim may not be necessary", "Consider minor touch-up if needed"]
+                claim_status = "rejected"
+                damage_detected = False
+                severity_level = "none"
+            else:
+                damage_detected = True
+                
+                # Adjust assessment based on fraud risk
+                if fraud_analysis['fraud_detected']:
+                    if fraud_analysis['risk_level'] == 'HIGH':
+                        estimated_cost = 0  # Don't provide estimate for high-risk fraud
+                        recommendations = ["🚨 CLAIM REJECTED - Fraudulent activity detected", "Contact customer service for appeal process"]
+                        claim_status = "rejected"
+                    elif fraud_analysis['risk_level'] == 'MEDIUM':
+                        recommendations = self._generate_recommendations(damage_type, severity_level)
+                        recommendations.append("⚠️ Additional verification required due to fraud indicators")
+                        claim_status = "under_review"
+                    else:
+                        recommendations = self._generate_recommendations(damage_type, severity_level)
+                        claim_status = "approved"
                 else:
                     recommendations = self._generate_recommendations(damage_type, severity_level)
                     claim_status = "approved"
-            else:
-                recommendations = self._generate_recommendations(damage_type, severity_level)
-                claim_status = "approved"
             
             # 7. Generate comprehensive assessment
             assessment = {
-                "damage_detected": True,
+                "damage_detected": damage_detected,
                 "damage_type": damage_type,
                 "damage_severity": severity_level,
                 "severity_score": round(severity, 3),

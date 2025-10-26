@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Claim - InsurEdge AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+            min-height: 100vh;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .navbar {
+            backdrop-filter: blur(15px);
+            background: rgba(33, 37, 41, 0.95) !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .claim-form-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: none;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            animation: slideInUp 0.8s ease-out;
+        }
+        
+        .claim-form-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            border-radius: 25px 25px 0 0 !important;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="rgba(255,255,255,0.1)"><polygon points="0,0 1000,100 1000,0"/></svg>');
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            background: white;
+            transform: translateY(-2px);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.8rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            background: linear-gradient(145deg, #f8f9fa, #ffffff);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-area:hover::before {
+            opacity: 1;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-submit:hover::before {
+            left: 100%;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .results-section {
+            display: none;
+            animation: slideInUp 0.8s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .result-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+        }
+        
+        .result-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover .result-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .success-card {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border-radius: 20px;
+            animation: successPulse 2s ease-in-out;
+        }
+        
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .form-step {
+            opacity: 0;
+            transform: translateX(50px);
+            animation: stepIn 0.6s ease-out forwards;
+        }
+        
+        .form-step:nth-child(1) { animation-delay: 0.1s; }
+        .form-step:nth-child(2) { animation-delay: 0.2s; }
+        .form-step:nth-child(3) { animation-delay: 0.3s; }
+        .form-step:nth-child(4) { animation-delay: 0.4s; }
+        .form-step:nth-child(5) { animation-delay: 0.5s; }
+        
+        @keyframes stepIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            height: 8px;
+            transition: width 0.3s ease;
+        }
+        
+        .image-preview {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            animation: imageZoom 0.5s ease-out;
+        }
+        
+        @keyframes imageZoom {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-car-crash me-2"></i>InsurEdge AI
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+                <a class="nav-link active" href="/claim">File Claim</a>
+                <a class="nav-link" href="#" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card claim-form-card">
+                    <div class="card-header">
+                        <h4 class="mb-0" style="font-size: 1.8rem; font-weight: 700; position: relative; z-index: 2;">
+                            <i class="fas fa-file-alt me-3"></i>File Insurance Claim
+                        </h4>
+                        <p class="mb-0 mt-2 opacity-75" style="position: relative; z-index: 2;">Submit your claim with AI-powered damage assessment</p>
+                    </div>
+                    <div class="card-body p-5">
+                        <form id="claimForm" enctype="multipart/form-data">
+                            <div class="row form-step">
+                                <div class="col-md-6 mb-4">
+                                    <label for="policy_number" class="form-label">
+                                        <i class="fas fa-id-card me-2 text-primary"></i>Policy Number *
+                                    </label>
+                                    <input type="text" class="form-control" id="policy_number" name="policy_number" placeholder="Enter your policy number" required>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <label for="incident_date" class="form-label">
+                                        <i class="fas fa-calendar me-2 text-primary"></i>Incident Date *
+                                    </label>
+                                    <input type="date" class="form-control" id="incident_date" name="incident_date" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4 form-step">
+                                <label for="location" class="form-label">
+                                    <i class="fas fa-map-marker-alt me-2 text-primary"></i>Incident Location *
+                                </label>
+                                <input type="text" class="form-control" id="location" name="location" placeholder="City, State, Country" required>
+                            </div>
+                            
+                            <div class="mb-4 form-step">
+                                <label for="incident_description" class="form-label">
+                                    <i class="fas fa-edit me-2 text-primary"></i>Incident Description *
+                                </label>
+                                <textarea class="form-control" id="incident_description" name="incident_description" rows="4" placeholder="Please describe what happened in detail..." required></textarea>
+                            </div>
+                            
+                            <div class="mb-5 form-step">
+                                <label class="form-label">
+                                    <i class="fas fa-camera me-2 text-primary"></i>Upload Damage Photo *
+                                </label>
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fas fa-cloud-upload-alt upload-icon mb-3"></i>
+                                    <h5 class="fw-bold">Drag & Drop or Click to Upload</h5>
+                                    <p class="text-muted mb-0">Upload a clear photo of the vehicle damage</p>
+                                    <small class="text-muted">Supported formats: JPG, PNG, GIF (Max 16MB)</small>
+                                    <input type="file" id="damage_image" name="damage_image" accept="image/*" style="display: none;" required>
+                                </div>
+                                <div id="imagePreview" class="mt-4" style="display: none;">
+                                    <div class="image-preview">
+                                        <img id="previewImg" src="" alt="Preview" class="img-fluid" style="max-height: 400px; width: 100%; object-fit: cover;">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid form-step">
+                                <button type="submit" class="btn btn-submit btn-lg text-white">
+                                    <span class="submit-text">
+                                        <i class="fas fa-paper-plane me-2"></i>Submit Claim for AI Analysis
+                                    </span>
+                                    <span class="loading-spinner">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Processing with AI...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="results-section mt-5">
+                    <div class="card result-card">
+                        <div class="card-header success-card">
+                            <h5 class="mb-0" style="font-size: 1.5rem; font-weight: 700;">
+                                <i class="fas fa-check-circle me-3"></i>Claim Submitted Successfully
+                            </h5>
+                            <p class="mb-0 mt-2 opacity-75">AI analysis completed in real-time</p>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-success" style="border-radius: 15px; border: none; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.1));">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-robot fa-2x text-success me-3"></i>
+                                    <div>
+                                        <strong style="font-size: 1.1rem;">Claim ID: <span id="claimId" style="color: #667eea;"></span></strong>
+                                        <p class="mb-0 mt-1">Your claim has been processed by our advanced AI system with the following results:</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-4">
+                                    <div class="card result-card h-100">
+                                        <div class="card-body text-center p-4">
+                                            <div class="result-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                                <i class="fas fa-search fa-2x text-white"></i>
+                                            </div>
+                                            <h6 class="fw-bold">Damage Analysis</h6>
+                                            <div id="damageType" class="fw-bold fs-5" style="color: #667eea;"></div>
+                                            <small class="text-muted">AI Confidence: <span id="confidence" class="fw-semibold"></span>%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card result-card h-100">
+                                        <div class="card-body text-center p-4">
+                                            <div class="result-icon" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                                                <i class="fas fa-rupee-sign fa-2x text-white"></i>
+                                            </div>
+                                            <h6 class="fw-bold">Estimated Cost</h6>
+                                            <div id="estimatedCost" class="fw-bold fs-4" style="background: linear-gradient(135deg, #28a745, #20c997); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></div>
+                                            <small class="text-muted">Indian Rupees (INR)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card result-card h-100">
+                                        <div class="card-body text-center p-4">
+                                            <div class="result-icon" id="fraudIconContainer">
+                                                <i class="fas fa-shield-alt fa-2x text-white" id="fraudIcon"></i>
+                                            </div>
+                                            <h6 class="fw-bold">Fraud Risk</h6>
+                                            <div id="fraudRisk" class="fw-bold fs-5"></div>
+                                            <small class="text-muted">Security Assessment</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card result-card">
+                                <div class="card-header" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 20px 20px 0 0;">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="fas fa-lightbulb me-2 text-warning"></i>AI Recommendations
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul id="recommendations" class="list-unstyled mb-0"></ul>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mt-5">
+                                <a href="/dashboard" class="btn btn-primary btn-lg me-3" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; border-radius: 25px; padding: 12px 30px;">
+                                    <i class="fas fa-chart-bar me-2"></i>View Dashboard
+                                </a>
+                                <button class="btn btn-outline-primary btn-lg" onclick="location.reload()" style="border-radius: 25px; padding: 12px 30px;">
+                                    <i class="fas fa-plus me-2"></i>File Another Claim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('damage_image');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Form submission
+        document.getElementById('claimForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const submitText = submitBtn.querySelector('.submit-text');
+            const loadingSpinner = submitBtn.querySelector('.loading-spinner');
+            
+            // Show loading state
+            submitText.style.display = 'none';
+            loadingSpinner.style.display = 'inline';
+            submitBtn.disabled = true;
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/submit_claim', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error occurred'));
+                }
+            } catch (error) {
+                alert('Error submitting claim: ' + error.message);
+            } finally {
+                // Reset button state
+                submitText.style.display = 'inline';
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function displayResults(result) {
+            // Populate results
+            document.getElementById('claimId').textContent = result.claim_id;
+            
+            const damageDetection = result.results.damage_detection;
+            const costEstimation = result.results.cost_estimation;
+            const fraudDetection = result.results.fraud_detection;
+            
+            document.getElementById('damageType').textContent = damageDetection.damage_type.replace('_', ' ').toUpperCase();
+            document.getElementById('confidence').textContent = Math.round(damageDetection.confidence * 100);
+            document.getElementById('estimatedCost').textContent = '₹' + costEstimation.estimated_cost.toLocaleString();
+            
+            const fraudRisk = fraudDetection.risk_level;
+            const fraudRiskElement = document.getElementById('fraudRisk');
+            const fraudIcon = document.getElementById('fraudIcon');
+            const fraudIconContainer = document.getElementById('fraudIconContainer');
+            
+            fraudRiskElement.textContent = fraudRisk;
+            
+            if (fraudRisk === 'LOW') {
+                fraudRiskElement.className = 'fw-bold fs-5';
+                fraudRiskElement.style.color = '#28a745';
+                fraudIconContainer.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                fraudIcon.className = 'fas fa-shield-alt fa-2x text-white';
+            } else if (fraudRisk === 'MEDIUM') {
+                fraudRiskElement.className = 'fw-bold fs-5';
+                fraudRiskElement.style.color = '#ffc107';
+                fraudIconContainer.style.background = 'linear-gradient(135deg, #ffc107, #fd7e14)';
+                fraudIcon.className = 'fas fa-exclamation-triangle fa-2x text-white';
+            } else {
+                fraudRiskElement.className = 'fw-bold fs-5';
+                fraudRiskElement.style.color = '#dc3545';
+                fraudIconContainer.style.background = 'linear-gradient(135deg, #dc3545, #e83e8c)';
+                fraudIcon.className = 'fas fa-times-circle fa-2x text-white';
+            }
+            
+            // Display recommendations
+            const recommendationsList = document.getElementById('recommendations');
+            recommendationsList.innerHTML = '';
+            
+            if (result.results.recommendations) {
+                result.results.recommendations.forEach((rec, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="d-flex align-items-start mb-3 p-3" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 15px; border-left: 4px solid #667eea;">
+                            <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                            <span class="fw-medium">${rec}</span>
+                        </div>
+                    `;
+                    li.style.animationDelay = (index * 0.1) + 's';
+                    li.classList.add('recommendation-item');
+                    recommendationsList.appendChild(li);
+                });
+            }
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userName');
+            window.location.href = '/logout';
+        }
+
+        // Enhanced animations and interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add floating animation to upload area
+            const uploadArea = document.getElementById('uploadArea');
+            setInterval(() => {
+                if (!uploadArea.classList.contains('dragover')) {
+                    uploadArea.style.transform = 'translateY(' + Math.sin(Date.now() / 1000) * 2 + 'px)';
+                }
+            }, 50);
+
+            // Add typing effect to form labels
+            const labels = document.querySelectorAll('.form-label');
+            labels.forEach((label, index) => {
+                setTimeout(() => {
+                    label.style.opacity = '0';
+                    label.style.transform = 'translateY(10px)';
+                    label.style.transition = 'all 0.3s ease';
+                    
+                    setTimeout(() => {
+                        label.style.opacity = '1';
+                        label.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+
+            // Add progress indicator
+            const form = document.getElementById('claimForm');
+            const inputs = form.querySelectorAll('input[required], textarea[required]');
+            
+            function updateProgress() {
+                const filledInputs = Array.from(inputs).filter(input => input.value.trim() !== '');
+                const progress = (filledInputs.length / inputs.length) * 100;
+                
+                let progressBar = document.getElementById('progressBar');
+                if (!progressBar) {
+                    const progressContainer = document.createElement('div');
+                    progressContainer.innerHTML = `
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted fw-semibold">Form Progress</small>
+                                <small class="text-muted fw-semibold" id="progressText">0%</small>
+                            </div>
+                            <div class="progress" style="height: 8px; border-radius: 10px;">
+                                <div class="progress-bar" id="progressBar" style="width: 0%; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                    form.insertBefore(progressContainer, form.firstChild);
+                    progressBar = document.getElementById('progressBar');
+                }
+                
+                progressBar.style.width = progress + '%';
+                document.getElementById('progressText').textContent = Math.round(progress) + '%';
+            }
+
+            inputs.forEach(input => {
+                input.addEventListener('input', updateProgress);
+                input.addEventListener('change', updateProgress);
+            });
+
+            // Add particle effects
+            function createParticle(x, y) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: fixed;
+                    width: 6px;
+                    height: 6px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 9999;
+                    left: ${x}px;
+                    top: ${y}px;
+                    animation: particleExplode 1s ease-out forwards;
+                `;
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+
+            // Add particle explosion on successful submission
+            window.createSuccessParticles = function() {
+                const rect = document.getElementById('resultsSection').getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const angle = (i / 20) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * 100;
+                        const y = centerY + Math.sin(angle) * 100;
+                        createParticle(x, y);
+                    }, i * 50);
+                }
+            };
+
+            // Add CSS for particle animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes particleExplode {
+                    0% {
+                        transform: scale(0) rotate(0deg);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1) rotate(180deg);
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: scale(0) rotate(360deg);
+                        opacity: 0;
+                    }
+                }
+                
+                .recommendation-item {
+                    animation: slideInLeft 0.6s ease-out forwards;
+                    opacity: 0;
+                    transform: translateX(-30px);
+                }
+                
+                @keyframes slideInLeft {
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+                
+                .form-control:focus {
+                    animation: inputGlow 0.3s ease-out;
+                }
+                
+                @keyframes inputGlow {
+                    0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
+                    70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        // Override the displayResults function to add particle effects
+        const originalDisplayResults = displayResults;
+        displayResults = function(result) {
+            originalDisplayResults(result);
+            
+            // Add particle explosion effect
+            setTimeout(() => {
+                if (window.createSuccessParticles) {
+                    window.createSuccessParticles();
+                }
+            }, 500);
+            
+            // Add typewriter effect to claim ID
+            const claimIdElement = document.getElementById('claimId');
+            const claimId = result.claim_id;
+            claimIdElement.textContent = '';
+            
+            let i = 0;
+            const typeWriter = setInterval(() => {
+                claimIdElement.textContent += claimId[i];
+                i++;
+                if (i >= claimId.length) {
+                    clearInterval(typeWriter);
+                }
+            }, 100);
+        };
+    </script>
+</body>
+</html>
