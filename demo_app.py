@@ -277,6 +277,27 @@ def claim():
     
     return render_template('claim.html')
 
+def validate_incident_date(date_string):
+    """Validate incident date for fraud detection"""
+    try:
+        # Parse the date
+        incident_date = datetime.strptime(date_string, '%Y-%m-%d')
+        current_date = datetime.now()
+        
+        # Check if date is in the future
+        if incident_date.date() > current_date.date():
+            return False, "Incident date cannot be in the future"
+        
+        # Check if date is too far in the past (more than 2 years)
+        two_years_ago = current_date - timedelta(days=730)
+        if incident_date < two_years_ago:
+            return False, "Incident date is too old (more than 2 years)"
+        
+        return True, "Valid date"
+        
+    except ValueError:
+        return False, "Invalid date format"
+
 @app.route('/submit_claim', methods=['POST'])
 def submit_claim():
     try:
@@ -285,6 +306,11 @@ def submit_claim():
         incident_date = request.form.get('incident_date')
         incident_description = request.form.get('incident_description')
         location = request.form.get('location')
+        
+        # Validate incident date
+        date_valid, date_message = validate_incident_date(incident_date)
+        if not date_valid:
+            return jsonify({'error': f'Invalid incident date: {date_message}'}), 400
         
         # Handle file upload
         if 'damage_image' not in request.files:
@@ -337,6 +363,16 @@ def submit_claim():
                     }),
                     'recommendations': analysis.get('recommendations', [])
                 }
+                
+                # Additional fraud checks for date
+                incident_dt = datetime.strptime(incident_date, '%Y-%m-%d')
+                days_since_incident = (datetime.now() - incident_dt).days
+                
+                # Flag suspicious timing
+                if days_since_incident == 0:  # Same day claim
+                    results['fraud_detection']['fraud_score'] += 0.2
+                    results['fraud_detection']['suspicious_factors'] = results['fraud_detection'].get('suspicious_factors', [])
+                    results['fraud_detection']['suspicious_factors'].append('Same-day claim submission')
                 
                 # Determine overall status based on analysis
                 fraud_analysis = analysis.get('fraud_analysis', {})
