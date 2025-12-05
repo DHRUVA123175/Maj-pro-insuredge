@@ -402,10 +402,86 @@ class VehicleDamageDetector:
             print(f"Error estimating cost: {e}")
             return 5000
     
-    def detect_fraud(self, image_data, damage_type, confidence):
-        """Detect potential insurance fraud"""
+    def analyze_description_fraud(self, description, location):
+        """Analyze claim description for fraud indicators"""
         fraud_indicators = []
         fraud_score = 0.0
+        
+        if not description:
+            return fraud_score, fraud_indicators
+        
+        description_lower = description.lower()
+        location_lower = location.lower() if location else ""
+        
+        # High-risk keywords (expensive damages)
+        high_risk_keywords = [
+            'submerged', 'river', 'lake', 'ocean', 'flood', 'water damage',
+            'total loss', 'completely destroyed', 'burned', 'fire',
+            'stolen', 'theft', 'missing', 'vandalized', 'keyed'
+        ]
+        
+        # Suspicious phrases
+        suspicious_phrases = [
+            'fell into', 'drove into water', 'sank', 'underwater',
+            'caught fire', 'exploded', 'completely burned',
+            'someone stole', 'disappeared', 'can\'t find'
+        ]
+        
+        # Vague descriptions (fraud indicator)
+        vague_phrases = [
+            'not sure', 'don\'t know', 'can\'t remember', 'maybe',
+            'i think', 'possibly', 'somehow'
+        ]
+        
+        # Check for high-risk keywords
+        for keyword in high_risk_keywords:
+            if keyword in description_lower:
+                fraud_indicators.append(f"High-risk claim: '{keyword}' detected")
+                fraud_score += 0.3
+                break  # Only count once
+        
+        # Check for suspicious phrases
+        for phrase in suspicious_phrases:
+            if phrase in description_lower:
+                fraud_indicators.append(f"Suspicious description: '{phrase}'")
+                fraud_score += 0.25
+                break
+        
+        # Check for vague descriptions
+        for phrase in vague_phrases:
+            if phrase in description_lower:
+                fraud_indicators.append("Vague or uncertain description")
+                fraud_score += 0.15
+                break
+        
+        # Check description length (too short or too long can be suspicious)
+        if len(description) < 20:
+            fraud_indicators.append("Description too brief")
+            fraud_score += 0.1
+        elif len(description) > 500:
+            fraud_indicators.append("Unusually detailed description")
+            fraud_score += 0.1
+        
+        # Check for inconsistencies between description and location
+        water_keywords = ['river', 'lake', 'ocean', 'water', 'submerged', 'flood']
+        has_water_damage = any(kw in description_lower for kw in water_keywords)
+        
+        if has_water_damage:
+            # Water damage claims are high-risk
+            fraud_score += 0.2
+            fraud_indicators.append("Water damage claim requires thorough verification")
+        
+        return fraud_score, fraud_indicators
+    
+    def detect_fraud(self, image_data, damage_type, confidence, description="", location=""):
+        """Detect potential insurance fraud with text analysis"""
+        fraud_indicators = []
+        fraud_score = 0.0
+        
+        # First, analyze the description text
+        text_fraud_score, text_indicators = self.analyze_description_fraud(description, location)
+        fraud_score += text_fraud_score
+        fraud_indicators.extend(text_indicators)
         
         try:
             # Convert to OpenCV format for analysis
@@ -491,7 +567,7 @@ class VehicleDamageDetector:
                 "requires_human_review": True
             }
 
-    def analyze_damage(self, image_data):
+    def analyze_damage(self, image_data, description="", location=""):
         """Complete damage analysis pipeline with fraud detection"""
         try:
             # 1. Classify damage type
@@ -503,8 +579,8 @@ class VehicleDamageDetector:
             # 3. Estimate cost
             estimated_cost = self.estimate_cost(image_data, damage_type, severity)
             
-            # 4. Fraud detection
-            fraud_analysis = self.detect_fraud(image_data, damage_type, confidence)
+            # 4. Fraud detection (with text analysis)
+            fraud_analysis = self.detect_fraud(image_data, damage_type, confidence, description, location)
             
             # 5. Determine severity level
             if severity < 0.3:

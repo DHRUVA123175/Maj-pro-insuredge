@@ -159,15 +159,7 @@
                             </p>
                         </div>
 
-                        <!-- Demo Credentials -->
-                        <div class="mt-4 p-3 bg-light rounded">
-                            <small class="text-muted">
-                                <strong>Demo Credentials:</strong><br>
-                                Email: demo@insuredge.ai<br>
-                                Password: demo123<br>
-                                2FA Code: 123456 (for demo)
-                            </small>
-                        </div>
+
                     </div>
                 </div>
             </div>
@@ -239,9 +231,13 @@
                     // Show success message
                     showAlert('Login successful! Redirecting...', 'success');
                     
-                    // Redirect to dashboard
+                    // Redirect based on role
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        if (result.role === 'admin') {
+                            window.location.href = '/admin';
+                        } else {
+                            window.location.href = '/dashboard';
+                        }
                     }, 1500);
                 } else {
                     throw new Error(result.error || 'Login failed');

@@ -22,6 +22,14 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Auto-approval configuration
+AUTO_APPROVAL_CONFIG = {
+    'enabled': True,
+    'low_risk_delay_hours': 24,      # Low risk claims auto-approve after 24 hours
+    'medium_risk_delay_hours': 72,   # Medium risk claims auto-approve after 72 hours (3 days)
+    'high_risk_never': True          # High risk claims NEVER auto-approve
+}
+
 # Initialize JWT
 jwt = JWTManager(app)
 
@@ -89,7 +97,18 @@ demo_users = {
         'password': generate_password_hash('demo123'),
         'phone': '+91-9876543210',
         'created_at': datetime.now().isoformat(),
-        'requires_2fa': True
+        'requires_2fa': True,
+        'role': 'user'
+    },
+    'admin@insuredge.ai': {
+        'id': 'admin-001',
+        'name': 'Admin User',
+        'email': 'admin@insuredge.ai',
+        'password': generate_password_hash('admin123'),
+        'phone': '+91-9999999999',
+        'created_at': datetime.now().isoformat(),
+        'requires_2fa': False,
+        'role': 'admin'
     }
 }
 demo_sessions = {}
@@ -110,6 +129,78 @@ def require_auth():
     if not user_id:
         return False
     return True
+
+def is_admin():
+    """Check if current user is admin"""
+    user_id = get_current_user()
+    if not user_id:
+        return False
+    
+    for email, user_data in demo_users.items():
+        if user_data['id'] == user_id and user_data.get('role') == 'admin':
+            return True
+    return False
+
+def check_auto_approval(claim):
+    """Check if a claim should be auto-approved based on time and risk level"""
+    if not AUTO_APPROVAL_CONFIG['enabled']:
+        return False, claim['status']
+    
+    # Don't auto-approve already processed claims
+    if claim['status'] in ['Approved', 'Rejected', 'Rejected - Fraud Detected']:
+        return False, claim['status']
+    
+    # Get fraud risk level
+    fraud_risk = claim.get('ai_results', {}).get('fraud_detection', {}).get('risk_level', 'MEDIUM')
+    
+    # HIGH risk claims never auto-approve
+    if fraud_risk == 'HIGH' and AUTO_APPROVAL_CONFIG['high_risk_never']:
+        return False, claim['status']
+    
+    # Calculate time since claim creation
+    created_at = datetime.fromisoformat(claim['created_at'])
+    hours_elapsed = (datetime.now() - created_at).total_seconds() / 3600
+    
+    # Check if enough time has passed based on risk level
+    if fraud_risk == 'LOW':
+        if hours_elapsed >= AUTO_APPROVAL_CONFIG['low_risk_delay_hours']:
+            return True, 'Auto-Approved (Low Risk)'
+    elif fraud_risk == 'MEDIUM':
+        if hours_elapsed >= AUTO_APPROVAL_CONFIG['medium_risk_delay_hours']:
+            return True, 'Auto-Approved (Medium Risk - Reviewed)'
+    
+    # Calculate remaining time
+    if fraud_risk == 'LOW':
+        remaining_hours = AUTO_APPROVAL_CONFIG['low_risk_delay_hours'] - hours_elapsed
+    elif fraud_risk == 'MEDIUM':
+        remaining_hours = AUTO_APPROVAL_CONFIG['medium_risk_delay_hours'] - hours_elapsed
+    else:
+        remaining_hours = None
+    
+    # Update status with time remaining
+    if remaining_hours and remaining_hours > 0:
+        if fraud_risk == 'LOW':
+            new_status = f"Processing (Auto-approve in {int(remaining_hours)}h)"
+        else:
+            new_status = f"Under Investigation (Auto-approve in {int(remaining_hours)}h)"
+        return False, new_status
+    
+    return False, claim['status']
+
+def process_auto_approvals():
+    """Process all pending claims for auto-approval"""
+    approved_count = 0
+    for user_id, user_claims in demo_claims.items():
+        for claim_id, claim in user_claims.items():
+            should_approve, new_status = check_auto_approval(claim)
+            if should_approve:
+                demo_claims[user_id][claim_id]['status'] = new_status
+                demo_claims[user_id][claim_id]['auto_approved_at'] = datetime.now().isoformat()
+                approved_count += 1
+            elif new_status != claim['status']:
+                demo_claims[user_id][claim_id]['status'] = new_status
+    
+    return approved_count
 
 # Authentication Routes
 @app.route('/api/register', methods=['POST'])
@@ -139,7 +230,8 @@ def register():
             'email': data['email'],
             'password': hashed_password,
             'phone': data.get('phone', ''),
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            'role': 'user'  # Regular user role
         }
         
         demo_users[data['email']] = user_data
@@ -185,6 +277,7 @@ def login():
         # Set session for demo (in production, use JWT)
         session['user_id'] = user['id']
         session['user_name'] = user['name']
+        session['user_role'] = user.get('role', 'user')
         
         # Generate JWT token
         token = create_access_token(identity=user['id'])
@@ -193,7 +286,8 @@ def login():
             "message": "Login successful",
             "token": token,
             "name": user['name'],
-            "user_id": user['id']
+            "user_id": user['id'],
+            "role": user.get('role', 'user')
         })
         
     except Exception as e:
@@ -249,15 +343,18 @@ def dashboard():
     if not user_id:
         return redirect(url_for('login_page'))
     
+    # Process auto-approvals before showing dashboard
+    process_auto_approvals()
+    
     # Get only this user's claims for privacy
     user_claims = demo_claims.get(user_id, {})
     claims_list = list(user_claims.values())
     
     # Calculate statistics for this user only
     total_claims = len(claims_list)
-    approved_claims = len([c for c in claims_list if c.get('status') == 'Approved'])
-    processing_claims = len([c for c in claims_list if c.get('status') == 'Processing'])
-    review_claims = len([c for c in claims_list if 'Review' in c.get('status', '')])
+    approved_claims = len([c for c in claims_list if 'Approved' in c.get('status', '')])
+    processing_claims = len([c for c in claims_list if 'Processing' in c.get('status', '')])
+    review_claims = len([c for c in claims_list if 'Review' in c.get('status', '') or 'Investigation' in c.get('status', '')])
     
     stats = {
         'total_claims': total_claims,
@@ -341,8 +438,8 @@ def submit_claim():
                 with open(filepath, 'rb') as f:
                     image_data = f.read()
                 
-                # Comprehensive damage analysis
-                analysis = detector.analyze_damage(image_data)
+                # Comprehensive damage analysis with description
+                analysis = detector.analyze_damage(image_data, incident_description, location)
                 
                 # Format results for frontend
                 results = {
@@ -453,6 +550,139 @@ def claim_status(claim_id):
 @app.route('/api/claims')
 def api_claims():
     return jsonify(list(demo_claims.values()))
+
+# Admin Routes
+@app.route('/admin')
+def admin_dashboard():
+    """Admin dashboard page"""
+    if not is_admin():
+        return redirect(url_for('login_page'))
+    
+    return render_template('admin.html')
+
+@app.route('/api/admin/stats')
+def admin_stats():
+    """Get comprehensive admin statistics"""
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Process auto-approvals first
+    auto_approved = process_auto_approvals()
+    
+    # Collect all claims from all users
+    all_claims = []
+    for user_id, user_claims in demo_claims.items():
+        all_claims.extend(user_claims.values())
+    
+    # Calculate statistics
+    total_users = len([u for u in demo_users.values() if u.get('role') != 'admin'])
+    total_claims = len(all_claims)
+    approved_claims = len([c for c in all_claims if c.get('status') == 'Approved'])
+    processing_claims = len([c for c in all_claims if c.get('status') == 'Processing'])
+    rejected_claims = len([c for c in all_claims if 'Rejected' in c.get('status', '')])
+    fraud_detected = len([c for c in all_claims if c.get('ai_results', {}).get('fraud_detection', {}).get('fraud_detected', False)])
+    
+    # Calculate total claim amounts
+    total_amount = sum([c.get('ai_results', {}).get('cost_estimation', {}).get('estimated_cost', 0) for c in all_claims])
+    approved_amount = sum([c.get('ai_results', {}).get('cost_estimation', {}).get('estimated_cost', 0) 
+                          for c in all_claims if c.get('status') == 'Approved'])
+    
+    # Recent activity
+    recent_claims = sorted(all_claims, key=lambda x: x.get('created_at', ''), reverse=True)[:10]
+    
+    return jsonify({
+        'total_users': total_users,
+        'total_claims': total_claims,
+        'approved_claims': approved_claims,
+        'processing_claims': processing_claims,
+        'rejected_claims': rejected_claims,
+        'fraud_detected': fraud_detected,
+        'total_amount': total_amount,
+        'approved_amount': approved_amount,
+        'recent_claims': recent_claims
+    })
+
+@app.route('/api/admin/users')
+def admin_users():
+    """Get all users with their claim statistics"""
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    users_list = []
+    for email, user_data in demo_users.items():
+        if user_data.get('role') == 'admin':
+            continue
+        
+        user_id = user_data['id']
+        user_claims = demo_claims.get(user_id, {})
+        
+        # Calculate user statistics
+        total_claims = len(user_claims)
+        approved = len([c for c in user_claims.values() if c.get('status') == 'Approved'])
+        total_claimed = sum([c.get('ai_results', {}).get('cost_estimation', {}).get('estimated_cost', 0) 
+                            for c in user_claims.values()])
+        
+        users_list.append({
+            'id': user_id,
+            'name': user_data['name'],
+            'email': email,
+            'phone': user_data.get('phone', 'N/A'),
+            'created_at': user_data['created_at'],
+            'total_claims': total_claims,
+            'approved_claims': approved,
+            'total_claimed_amount': total_claimed
+        })
+    
+    return jsonify(users_list)
+
+@app.route('/api/admin/claims')
+def admin_all_claims():
+    """Get all claims from all users"""
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    all_claims = []
+    for user_id, user_claims in demo_claims.items():
+        for claim in user_claims.values():
+            # Add user info to claim
+            user_info = None
+            for email, user_data in demo_users.items():
+                if user_data['id'] == user_id:
+                    user_info = {
+                        'name': user_data['name'],
+                        'email': email,
+                        'phone': user_data.get('phone', 'N/A')
+                    }
+                    break
+            
+            claim_with_user = claim.copy()
+            claim_with_user['user_info'] = user_info
+            all_claims.append(claim_with_user)
+    
+    # Sort by created date
+    all_claims.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    return jsonify(all_claims)
+
+@app.route('/api/admin/claim/<claim_id>/update', methods=['POST'])
+def admin_update_claim(claim_id):
+    """Update claim status"""
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    new_status = data.get('status')
+    
+    if not new_status:
+        return jsonify({'error': 'Status required'}), 400
+    
+    # Find and update claim
+    for user_id, user_claims in demo_claims.items():
+        if claim_id in user_claims:
+            demo_claims[user_id][claim_id]['status'] = new_status
+            return jsonify({'success': True, 'message': 'Claim updated successfully'})
+    
+    return jsonify({'error': 'Claim not found'}), 404
 
 if __name__ == '__main__':
     print("🚀 Starting InsurEdge AI Demo Server...")
